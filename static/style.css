@@ -1,0 +1,317 @@
+/* 🌌 CRAZY AI BACKGROUND */
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+
+    background:
+        linear-gradient(rgba(2,6,23,0.92), rgba(2,6,23,0.95)),
+        url("https://images.unsplash.com/photo-1620712943543-bcc4688e7485");
+
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+
+    color: #e2e8f0;
+}
+
+/* ✨ Neon Glow Layer */
+body::before {
+    content: "";
+    position: fixed;
+    width: 100%;
+    height: 100%;
+
+    background:
+        radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent),
+        radial-gradient(circle at 80% 80%, rgba(139,92,246,0.15), transparent);
+
+    z-index: -1;
+}
+
+/* 📦 Glass Container */
+.container {
+    max-width: 900px;
+    margin: 50px auto;
+    padding: 30px;
+
+    background: rgba(10, 15, 30, 0.75);
+    border-radius: 18px;
+    backdrop-filter: blur(18px);
+
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+
+/* 🧠 Title */
+h1 {
+    text-align: center;
+    font-size: 36px;
+    letter-spacing: 1px;
+
+    background: linear-gradient(90deg, #00f0ff, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    text-shadow: 0 0 25px rgba(0,255,255,0.6);
+}
+
+/* ✍️ INPUT BOX (🔥 GLOW EFFECT) */
+textarea {
+    width: 95%;
+    height: 100px;
+    padding: 18px;
+
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+    outline: none;
+
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+
+    font-size: 16px;
+    font-weight: 500;
+
+    transition: all 0.3s ease;
+}
+
+/* 💡 GLOW ON CLICK */
+textarea:focus {
+    border: 1px solid #00f0ff;
+
+    box-shadow:
+        0 0 10px #00f0ff,
+        0 0 30px rgba(0,255,255,0.6),
+        inset 0 0 10px rgba(0,255,255,0.3);
+}
+
+/* 🚀 BUTTON */
+button {
+    margin-top: 15px;
+    padding: 12px 26px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: linear-gradient(90deg, #00f0ff, #a855f7);
+    color: black;
+
+    font-weight: bold;
+    font-size: 15px;
+
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* ⚡ BUTTON HOVER */
+button:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px rgba(0,255,255,0.6);
+}
+
+/* 📊 CARDS */
+.card {
+    margin-top: 22px;
+    padding: 20px;
+
+    border-radius: 16px;
+
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* 🧾 CODE BLOCK */
+pre {
+    background: #010617;
+    padding: 14px;
+    border-radius: 10px;
+
+    color: #00f0ff;
+    font-size: 13px;
+
+    box-shadow: inset 0 0 10px rgba(0,255,255,0.2);
+}
+
+/* 🎥 SCREENSHOT */
+img {
+    width: 100%;
+    border-radius: 14px;
+
+    box-shadow: 0 0 25px rgba(0,0,0,0.7);
+}
+
+/* 📋 LIST */
+ul {
+    padding-left: 20px;
+}
+
+li {
+    margin: 6px 0;
+}
+
+/* 🔍 SEARCH TYPE BUTTONS */
+.search-types {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.search-type-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    border: 1.5px solid rgba(0,255,255,0.2);
+    border-radius: 8px;
+    background: rgba(0,255,255,0.05);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.search-type-btn:hover {
+    border: 1.5px solid rgba(0,255,255,0.4);
+    background: rgba(0,255,255,0.1);
+    color: #cbd5e1;
+    transform: translateY(-2px);
+}
+
+.search-type-btn.active {
+    border: 1.5px solid #3b82f6;
+    background: rgba(59,130,246,0.2);
+    color: #93c5fd;
+    box-shadow: 0 0 15px rgba(59,130,246,0.5);
+}
+
+/* 🎤 VOICE INPUT WRAPPER */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+/* 🎤 VOICE BUTTON */
+#voice-btn {
+    margin-top: 0;
+    padding: 10px 12px;
+    position: sticky;
+    top: 18px;
+    min-width: 45px;
+
+    border: 1px solid rgba(100,150,255,0.6);
+    border-radius: 10px;
+
+    background: rgba(100,150,255,0.25);
+    color: #64b5ff;
+
+    font-weight: bold;
+    font-size: 16px;
+
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 🎤 VOICE BUTTON HOVER */
+#voice-btn:hover {
+    background: rgba(100,150,255,0.4);
+    border: 1px solid #64b5ff;
+    box-shadow: 0 0 15px rgba(100,150,255,0.6);
+    transform: scale(1.08);
+}
+
+/* 🎙️ LISTENING STATE */
+.voice-btn.listening {
+    background: rgba(168,85,247,0.3);
+    border: 1px solid #a855f7;
+    color: #d8b4fe;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* ✨ PULSE ANIMATION */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(168,85,247,0.5);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(168,85,247,0.8);
+    }
+}
+
+/* 📢 VOICE STATUS INDICATOR */
+.voice-status {
+    margin-top: 12px;
+    padding: 12px 16px;
+
+    border-radius: 10px;
+    background: rgba(0,255,255,0.15);
+    border: 1px solid rgba(0,255,255,0.3);
+
+    color: #00f0ff;
+    font-size: 14px;
+    font-weight: 500;
+
+    animation: slideIn 0.3s ease-out;
+    transition: all 0.3s ease;
+}
+
+/* 👂 LISTENING STATE */
+.voice-status.listening {
+    background: rgba(168,85,247,0.2);
+    border: 1px solid rgba(168,85,247,0.5);
+    color: #d8b4fe;
+}
+
+/* ✅ SUCCESS STATE */
+.voice-status.success {
+    background: rgba(34,197,94,0.15);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: #22c55e;
+}
+
+/* ❌ ERROR STATE */
+.voice-status.error {
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #ef4444;
+}
+
+/* 👻 HIDDEN STATE */
+.voice-status.hidden {
+    display: none;
+}
+
+/* 📥 SLIDE IN ANIMATION */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ⏳ PULSE TEXT ANIMATION */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+}

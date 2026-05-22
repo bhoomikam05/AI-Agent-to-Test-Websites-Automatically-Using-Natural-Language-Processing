@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Automation</title>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+<div class="container">
+
+    <!-- TITLE -->
+    <h1>🔥 AI Test Automation Agent</h1>
+
+    <!-- SEARCH TYPE -->
+    <div class="search-types">
+        <button type="button" class="search-type-btn active">Text</button>
+        <button type="button" class="search-type-btn">Voice</button>
+    </div>
+
+    <!-- INPUT -->
+    <form id="automation-form">
+        <div class="input-wrapper">
+            <textarea id="input-textarea"
+                placeholder="Type something like: open youtube and search ai tools and click first..."></textarea>
+
+            <button type="button" id="voice-btn">🎤</button>
+        </div>
+
+        <button type="submit">🚀 Run Automation</button>
+    </form>
+
+    <!-- OUTPUT (HIDDEN INITIALLY) -->
+    <div id="output-section" style="display:none;">
+
+        <div class="card">
+            <h3>1. Instruction</h3>
+            <p id="instruction"></p>
+        </div>
+
+        <div class="card">
+            <h3>2. Parsed Actions</h3>
+            <pre id="parsed"></pre>
+        </div>
+
+        <div class="card">
+            <h3>3. Generated Playwright Code</h3>
+            <pre id="code" style="color:#00f7ff; background:#0d1117; padding:15px; border-radius:10px;"></pre>
+        </div>
+
+        <div class="card">
+            <h3>4. Execution Status</h3>
+            <p id="status" style="font-weight:bold;"></p>
+        </div>
+
+        <div class="card">
+            <h3>5. Screenshot</h3>
+            <img id="screenshot" width="500" style="border-radius:10px;">
+        </div>
+
+        <div class="card">
+            <h3>6. Execution Report</h3>
+            <p id="steps"></p>
+            <p id="time"></p>
+            <ul id="step-list"></ul>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- SCRIPT -->
+<script>
+const form = document.querySelector("form");
+const textarea = document.getElementById("input-textarea");
+const voiceBtn = document.getElementById("voice-btn");
+
+// ==========================
+// 🎤 VOICE INPUT (WORKING)
+// ==========================
+if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = "en-IN";
+
+    voiceBtn.addEventListener("click", () => {
+        recognition.start();
+    });
+
+    recognition.onresult = function(event) {
+        textarea.value = event.results[0][0].transcript;
+    };
+
+    recognition.onerror = function() {
+        alert("Voice recognition error");
+    };
+
+} else {
+    voiceBtn.onclick = () => {
+        alert("Voice not supported. Use Chrome.");
+    };
+}
+
+
+// ==========================
+// 🚀 FORM SUBMIT (AUTOMATION)
+// ==========================
+form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const input = textarea.value.trim();
+
+    if (!input) {
+        alert("Please enter something");
+        return;
+    }
+
+    // 🔄 IMMEDIATELY Show results section
+    document.getElementById("output-section").style.display = "block";
+    
+    // Show running state with animation
+    document.getElementById("instruction").innerHTML = "⏳ <b>Running automation...</b><br><span style='font-size:12px;'>🌐 Browser window is opening on your screen...</span>";
+    document.getElementById("parsed").innerHTML = "⏳ <span style='animation: pulse 1s infinite;'>Parsing instruction...</span>";
+    document.getElementById("code").innerHTML = "⏳ <span style='animation: pulse 1s infinite;'>Generating code...</span>";
+    document.getElementById("status").innerHTML = "⏳ <span style='animation: pulse 1s infinite;'>In Progress...</span>";
+    document.getElementById("status").style.color = "#00f7ff";
+    document.getElementById("steps").innerText = "";
+    document.getElementById("time").innerText = "";
+    document.getElementById("step-list").innerHTML = "";
+    
+    // Auto scroll to show the loading message
+    document.getElementById("output-section").scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+        // 🔥 CALL BACKEND
+        const res = await fetch("/run", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ input })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+            document.getElementById("status").innerText = "❌ Error: " + data.error;
+            document.getElementById("status").style.color = "red";
+            return;
+        }
+
+        if (!data.report) {
+            document.getElementById("status").innerText = "❌ Error running automation";
+            document.getElementById("status").style.color = "red";
+            return;
+        }
+
+        // ==========================
+        // 🎯 SHOW OUTPUT (AFTER RUN)
+        // ==========================
+        document.getElementById("instruction").innerText = data.instruction;
+
+        // 📋 Clean JSON - Super compact, readable format
+        const compactJson = data.parsed.map(p => {
+            let obj = { ...p };
+            delete obj.description; // Remove verbose descriptions
+            // Keep only essential fields: action, url/selector/value/key
+            let clean = { action: obj.action };
+            if (obj.url) clean.url = obj.url;
+            if (obj.selector) clean.selector = obj.selector;
+            if (obj.value) clean.value = obj.value;
+            if (obj.key) clean.key = obj.key;
+            return clean;
+        });
+        document.getElementById("parsed").innerText =
+            JSON.stringify(compactJson, null, 2);
+
+        // 📄 Clean Playwright Code - Extract & format correctly
+        const playwrightCode = [];
+        data.parsed.forEach(action => {
+            if (action.action === 'open') {
+                playwrightCode.push(`page.goto("${action.url}")`);
+            } else if (action.action === 'type') {
+                playwrightCode.push(`page.type("${action.selector}", "${action.value}")`);
+            } else if (action.action === 'press') {
+                playwrightCode.push(`page.press("*", "${action.key}")`);
+            } else if (action.action === 'click') {
+                playwrightCode.push(`page.click("${action.selector}")`);
+            } else if (action.action === 'click_all') {
+                playwrightCode.push(`elements = page.query_selector_all("${action.selector}")`);
+                playwrightCode.push(`for el in elements: el.click()`);
+            } else if (action.action === 'screenshot') {
+                playwrightCode.push(`page.screenshot(path="output.png")`);
+            } else if (action.action === 'scroll') {
+                playwrightCode.push(`page.evaluate("window.scrollBy(0, 500)")`);
+            } else if (action.action === 'wait') {
+                playwrightCode.push(`page.wait_for_selector("${action.selector}")`);
+            }
+        });
+        document.getElementById("code").innerText = playwrightCode.join('\n');
+
+        // ✅ STATUS COLOR - Always show PASS if execution completed
+        const statusEl = document.getElementById("status");
+        statusEl.innerText = data.report.status || "PASS";
+        statusEl.style.color =
+            (data.report.status === "FAIL") ? "red" : "limegreen";
+        statusEl.style.fontSize = "20px";
+        statusEl.style.fontWeight = "bold";
+
+        // 📊 SUMMARY - Compact format
+        document.getElementById("steps").innerText =
+            `Steps executed: ${data.report.total_steps} | Time: ${data.report.execution_time}s`;
+
+        document.getElementById("time").style.display = "none";
+
+        // 📋 STEP LIST - Compact format
+        const stepList = document.getElementById("step-list");
+        stepList.innerHTML = "";
+
+        if (data.report.steps && data.report.steps.length > 0) {
+            // Show only action steps, not verbose descriptions
+            const actionSteps = data.report.steps.filter((s, i) => i > 0 && i < data.report.steps.length - 1);
+            actionSteps.forEach((step, idx) => {
+                const li = document.createElement("li");
+                // Extract just action name from step.step
+                const actionName = step.step.split("'")[1] || step.step.split(' ')[0];
+                li.innerText = `${idx + 1}. ${actionName} - ${step.status}`;
+                li.style.color = step.status === "PASS" ? "limegreen" : "red";
+                li.style.fontSize = "13px";
+                li.style.padding = "3px 0";
+                stepList.appendChild(li);
+            });
+        }
+
+        // 📸 SCREENSHOT - Ensure it displays properly
+        if (data.report.screenshot) {
+            const screenshotEl = document.getElementById("screenshot");
+            screenshotEl.src = "/" + data.report.screenshot + "?t=" + new Date().getTime();
+            screenshotEl.style.display = "block";
+            screenshotEl.style.maxWidth = "100%";
+            screenshotEl.style.height = "auto";
+            screenshotEl.onerror = () => {
+                console.log("Screenshot load error");
+            };
+        }
+
+    } catch (err) {
+        document.getElementById("status").innerText = "❌ Error: " + err.message;
+        document.getElementById("status").style.color = "red";
+        console.error(err);
+    }
+});
+
+// ==========================
+// 🤖 AUTO-RUN (IF PROVIDED)
+// ==========================
+window.addEventListener('load', function() {
+    const autoRunCommand = "{{ auto_run_command }}";
+    
+    if (autoRunCommand && autoRunCommand !== "None") {
+        console.log("[AutoRun] 🤖 Auto-running command:", autoRunCommand);
+        
+        // Fill textarea with command
+        textarea.value = autoRunCommand;
+        
+        // Wait a moment for UI to settle
+        setTimeout(() => {
+            console.log("[AutoRun] 🚀 Submitting form...");
+            // Trigger form submission
+            form.dispatchEvent(new Event('submit'));
+        }, 500);
+    }
+});
+</script>
+
+</body>
+</html>
