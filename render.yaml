@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ai-test-automation-agent
+    runtime: docker
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: HEADLESS
+        value: "true"
+      - key: GROQ_API_KEY
+        sync: false # Set this in the Render Dashboard UI

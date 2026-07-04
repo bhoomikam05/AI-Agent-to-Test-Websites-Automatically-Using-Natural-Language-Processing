@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+.venv310/
+.venv*/
+env/
+active_env/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Project-specific generated directories and files
+static/screenshots/*
+!static/screenshots/.gitkeep
+static/user_data/
+static/user_data_debug*/
+execution_history.json
+
+# Installer / Python logs
+pip-log.txt
+*.log
+
+# Pytest / Cache files
+.pytest_cache/
+.mypy_cache/

@@ -123,7 +123,7 @@ form.addEventListener("submit", async function(e) {
     document.getElementById("output-section").style.display = "block";
     
     // Show running state with animation
-    document.getElementById("instruction").innerHTML = "⏳ <b>Running automation...</b><br><span style='font-size:12px;'>🌐 Browser window is opening on your screen...</span>";
+    document.getElementById("instruction").innerHTML = "⏳ <b>Running automation...</b><br><span style='font-size:12px;'>🌐 Browser is executing automation steps in the background...</span>";
     document.getElementById("parsed").innerHTML = "⏳ <span style='animation: pulse 1s infinite;'>Parsing instruction...</span>";
     document.getElementById("code").innerHTML = "⏳ <span style='animation: pulse 1s infinite;'>Generating code...</span>";
     document.getElementById("status").innerHTML = "⏳ <span style='animation: pulse 1s infinite;'>In Progress...</span>";
@@ -258,23 +258,22 @@ form.addEventListener("submit", async function(e) {
 // ==========================
 // 🤖 AUTO-RUN (IF PROVIDED)
 // ==========================
+{% if auto_run_command and auto_run_command != "None" %}
 window.addEventListener('load', function() {
     const autoRunCommand = "{{ auto_run_command }}";
+    console.log("[AutoRun] 🤖 Auto-running command:", autoRunCommand);
     
-    if (autoRunCommand && autoRunCommand !== "None") {
-        console.log("[AutoRun] 🤖 Auto-running command:", autoRunCommand);
-        
-        // Fill textarea with command
-        textarea.value = autoRunCommand;
-        
-        // Wait a moment for UI to settle
-        setTimeout(() => {
-            console.log("[AutoRun] 🚀 Submitting form...");
-            // Trigger form submission
-            form.dispatchEvent(new Event('submit'));
-        }, 500);
-    }
+    // Fill textarea with command
+    textarea.value = autoRunCommand;
+    
+    // Wait a moment for UI to settle
+    setTimeout(() => {
+        console.log("[AutoRun] 🚀 Submitting form...");
+        // Trigger form submission
+        form.dispatchEvent(new Event('submit'));
+    }, 500);
 });
+{% endif %}
 </script>
 
 </body>

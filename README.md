@@ -25,11 +25,22 @@ pip install -r requirements.txt
 python app.py
 
 ## Usage
-Open your browser and go to:
-
-http://127.0.0.1:5000
+Open your browser and navigate to the server URL (e.g., `http://localhost:5000` locally, or your deployed Render app URL).
 
 Enter a test instruction and run the automation.
+
+## Deployment on Render
+This project is configured for deployment to **Render**.
+
+1. Connect your GitHub repository to Render.
+2. Select **New** > **Blueprint**. Render will automatically detect the `render.yaml` file.
+3. Configure the following environment variable in the Render dashboard:
+   - `GROQ_API_KEY`: Your Groq API key for NLP parsing capabilities.
+4. Click **Apply** to deploy.
+
+Alternatively, if creating a manual Web Service on Render:
+- **Runtime**: `Docker`
+- Render will automatically find the `Dockerfile` to build the app and download all necessary Chromium browser dependencies.
 
 ## Author
 Bhoomika M

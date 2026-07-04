@@ -8,6 +8,8 @@ from executor import run_test
 from report import TestReport
 import time
 import logging
+import json
+import os
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +27,17 @@ class AutomationAgent:
     def __init__(self):
         self.last_report = None
         self.last_steps = None
-        self.execution_history = []
+        self.execution_history = self._load_history()
+    
+    def _load_history(self):
+        """Load history from file"""
+        try:
+            if os.path.exists("execution_history.json"):
+                with open("execution_history.json", "r") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"[Agent] Error loading history: {e}")
+        return []
     
     def execute_automation(self, instruction):
         """
@@ -110,6 +122,15 @@ class AutomationAgent:
             "total_steps": report.get("total_steps", 0)
         }
         self.execution_history.append(execution)
+        self._save_history()
+        
+    def _save_history(self):
+        """Save history to file"""
+        try:
+            with open("execution_history.json", "w") as f:
+                json.dump(self.execution_history, f, indent=2)
+        except Exception as e:
+            logger.error(f"[Agent] Error saving history: {e}")
     
     def get_last_report(self):
         """Get the last execution report"""

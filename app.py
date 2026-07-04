@@ -2,8 +2,6 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 import traceback
 import os
-import webbrowser
-import threading
 import time
 import sys
 import logging
@@ -15,7 +13,7 @@ logging.getLogger('urllib3').setLevel(logging.ERROR)   # HTTP requests
 logging.getLogger('requests').setLevel(logging.ERROR)  # Requests library
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 # LAZY IMPORT: Import agent and api_config only when routes are called
 def get_agent():
@@ -32,19 +30,7 @@ app = Flask(__name__)
 AUTO_RUN_COMMAND = None
 
 
-def open_browser():
-    """Open browser to localhost after Flask server starts"""
-    time.sleep(2)  # Give Flask time to start
-    url = "http://127.0.0.1:5000"
-
-    webbrowser.open(url)
-    
-    # If auto-run command is set, execute it after browser opens
-    if AUTO_RUN_COMMAND:
-        time.sleep(1)
-        print(f"[App] 🤖 Auto-running: {AUTO_RUN_COMMAND}")
-        # This will be executed via the web interface via JS
-        pass
+# Browser opening logic removed for deployment
 
 @app.route("/")
 def home():
@@ -99,38 +85,31 @@ if __name__ == "__main__":
     print("\n  AI TEST AUTOMATION AGENT - Starting Server...")
     print("  Server will open in 2 seconds")
     
-    # Check if auto-run command is provided
+    # Check if auto-run command is provided (and ensure it is not standard CLI flags/configs)
     if len(sys.argv) > 1:
-        AUTO_RUN_COMMAND = " ".join(sys.argv[1:])
-        print(f"  Auto-running: {AUTO_RUN_COMMAND}")
+        first_arg = sys.argv[1]
+        if not first_arg.startswith('-') and not first_arg.isdigit() and not first_arg.endswith('.py'):
+            AUTO_RUN_COMMAND = " ".join(sys.argv[1:])
+            print(f"  Auto-running: {AUTO_RUN_COMMAND}")
     
     print("\n" + "=" * 60 + "\n")
     
-    # Start browser in background thread (optional, after server starts)
-    def delayed_browser():
-        time.sleep(2)
-        try:
-            url = "http://127.0.0.1:5000"
-            webbrowser.open(url)
-            print(f"\n[Browser] Opening: {url}\n")
-        except Exception as e:
-            print(f"\n[Browser] Open failed (navigate manually to http://127.0.0.1:5000): {e}\n")
-    
-    try:
-        browser_thread = threading.Thread(target=delayed_browser, daemon=True)
-        browser_thread.start()
-    except:
-        pass
-    
     # Print server info
+    port = int(os.environ.get("PORT", 5000))
     print("[Server] Flask server is running!")
-    print("[Server] URL: http://127.0.0.1:5000")
+    print(f"[Server] Listening on: http://0.0.0.0:{port}")
     print("[Server] Press Ctrl+C to stop\n")
     sys.stdout.flush()
     
-    # Start with waitress (more reliable on Windows)
     try:
-        serve(app, host='127.0.0.1', port=5000, _quiet=False)
+        # Pre-launch the automation background thread (initializes Playwright without opening a window)
+        try:
+            from executor import pre_launch_browser
+            pre_launch_browser()
+        except Exception as e:
+            print(f"[Server] Could not pre-launch background thread: {e}")
+
+        serve(app, host='0.0.0.0', port=port, _quiet=False)
     except Exception as e:
         print(f"❌ Error starting server: {e}")
         traceback.print_exc()
