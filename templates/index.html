@@ -181,13 +181,15 @@ form.addEventListener("submit", async function(e) {
 
         // 📄 Clean Playwright Code - Extract & format correctly
         const playwrightCode = [];
+        let lastTypeSelector = "*";
         data.parsed.forEach(action => {
             if (action.action === 'open') {
                 playwrightCode.push(`page.goto("${action.url}")`);
             } else if (action.action === 'type') {
+                lastTypeSelector = action.selector || "*";
                 playwrightCode.push(`page.type("${action.selector}", "${action.value}")`);
             } else if (action.action === 'press') {
-                playwrightCode.push(`page.press("*", "${action.key}")`);
+                playwrightCode.push(`page.press("${lastTypeSelector}", "${action.key}")`);
             } else if (action.action === 'click') {
                 playwrightCode.push(`page.click("${action.selector}")`);
             } else if (action.action === 'click_all') {
