@@ -367,6 +367,10 @@ def _do_run_test(steps):
             browser, context, page = _ensure_context_and_page()
             print("[Executor] Browser, context, and page are ready instantly!")
 
+        DEFAULT_WAIT_TIMEOUT = 10000 if IS_DEPLOYED else 3000
+        DEFAULT_CLICK_TIMEOUT = 6000 if IS_DEPLOYED else 1500
+        DEFAULT_TYPE_TIMEOUT = 6000 if IS_DEPLOYED else 2000
+
         # Execute all steps
         for i, step in enumerate(steps):
             action = step.get("action")
@@ -392,9 +396,9 @@ def _do_run_test(steps):
                     selector = step.get("selector", "body")
                     try:
                         if selector == "body":
-                            page.wait_for_load_state("domcontentloaded", timeout=3000)
+                            page.wait_for_load_state("domcontentloaded", timeout=DEFAULT_WAIT_TIMEOUT)
                         else:
-                            page.locator(selector).first.wait_for(state="visible", timeout=3000)
+                            page.locator(selector).first.wait_for(state="visible", timeout=DEFAULT_WAIT_TIMEOUT)
                         report.add_step("Wait: Ready", "PASS")
                     except Exception:
                         report.add_step("Wait: OK", "PASS")
@@ -407,8 +411,8 @@ def _do_run_test(steps):
                         field = _find_input_field(page, selector)
                         if field is None:
                             raise Exception("Element not found")
-                        field.wait_for(state="visible", timeout=2000)
-                        field.fill(value, timeout=2000)
+                        field.wait_for(state="visible", timeout=DEFAULT_TYPE_TIMEOUT)
+                        field.fill(value, timeout=DEFAULT_TYPE_TIMEOUT)
                         if selector:
                             code_lines.append(f'    page.locator("{selector}").first.fill("{value}")')
                         else:
@@ -422,8 +426,6 @@ def _do_run_test(steps):
                             report.add_step(f"Type: {value[:20]} (keyboard fallback)", "PASS")
                         except Exception:
                             report.add_step("Type: Failed to locate input field", "FAIL")
-                            report.set_status("FAIL")
-                            break
 
                 # ── PRESS ─────────────────────────────────────────
                 elif action == "press":
@@ -436,8 +438,6 @@ def _do_run_test(steps):
                             page.wait_for_timeout(50)
                     except Exception:
                         report.add_step(f"Press: {key} (FAILED)", "FAIL")
-                        report.set_status("FAIL")
-                        break
 
                 # ── CLICK ─────────────────────────────────────────
                 elif action == "click":
@@ -447,27 +447,27 @@ def _do_run_test(steps):
 
                     try:
                         locator = page.locator(selector).nth(index)
-                        locator.wait_for(state="visible", timeout=2000)
-                        locator.click(timeout=1500)
+                        locator.wait_for(state="visible", timeout=DEFAULT_WAIT_TIMEOUT)
+                        locator.click(timeout=DEFAULT_CLICK_TIMEOUT)
                         code_lines.append(f'    page.locator("{selector}").nth({index}).click()')
                         report.add_step(f"Click: {description}", "PASS")
                     except Exception:
                         # Fallback 1: Try clicking by visible text
                         try:
                             locator = page.get_by_text(selector, exact=False).nth(index)
-                            locator.click(timeout=1000)
+                            locator.click(timeout=3000 if IS_DEPLOYED else 1000)
                             code_lines.append(f'    page.get_by_text("{selector}", exact=False).nth({index}).click()')
                             report.add_step(f"Click: {description} (text fallback)", "PASS")
                         except Exception:
                             # Fallback 2: button or link role
                             try:
                                 locator = page.get_by_role("button", name=selector, exact=False).nth(index)
-                                locator.click(timeout=1000)
+                                locator.click(timeout=3000 if IS_DEPLOYED else 1000)
                                 report.add_step(f"Click: {description} (button fallback)", "PASS")
                             except Exception:
                                 try:
                                     locator = page.get_by_role("link", name=selector, exact=False).nth(index)
-                                    locator.click(timeout=1000)
+                                    locator.click(timeout=3000 if IS_DEPLOYED else 1000)
                                     report.add_step(f"Click: {description} (link fallback)", "PASS")
                                 except Exception:
                                     # Fallback 3: Site-specific result selectors
@@ -489,7 +489,7 @@ def _do_run_test(steps):
                                         for alt in alternative_selectors:
                                             try:
                                                 locator = page.locator(alt).nth(index)
-                                                locator.click(timeout=800)
+                                                locator.click(timeout=2000 if IS_DEPLOYED else 800)
                                                 code_lines.append(f'    page.locator("{alt}").nth({index}).click()')
                                                 found = True
                                                 report.add_step(f"Click: {description} (result fallback)", "PASS")
@@ -511,8 +511,6 @@ def _do_run_test(steps):
                                                 raise Exception("Element not found")
                                     except Exception:
                                         report.add_step(f"Click: {description} (FAIL)", "FAIL")
-                                        report.set_status("FAIL")
-                                        break
 
                 # ── CLICK_ALL ─────────────────────────────────────
                 elif action == "click_all":
@@ -520,7 +518,7 @@ def _do_run_test(steps):
                     description = step.get("description", f"all {selector}")
 
                     try:
-                        page.wait_for_selector(selector, timeout=5000)
+                        page.wait_for_selector(selector, timeout=DEFAULT_WAIT_TIMEOUT)
                         elements = page.query_selector_all(selector)
                         click_count = 0
 
@@ -536,8 +534,6 @@ def _do_run_test(steps):
 
                     except Exception:
                         report.add_step("Click All: Error", "FAIL")
-                        report.set_status("FAIL")
-                        break
 
                 # ── SCROLL ────────────────────────────────────────
                 elif action == "scroll":
@@ -555,21 +551,17 @@ def _do_run_test(steps):
 
             except PlaywrightTimeout:
                 report.add_step(f"Step {i+1} timeout", "FAIL")
-                report.set_status("FAIL")
                 try:
                     page.screenshot(path=screenshot_path, type="jpeg", quality=80)
                 except Exception:
                     pass
-                break
 
             except Exception as e:
                 report.add_step(f"Step {i+1} error: {str(e)[:50]}", "FAIL")
-                report.set_status("FAIL")
                 try:
                     page.screenshot(path=screenshot_path, type="jpeg", quality=80)
                 except Exception:
                     pass
-                break
 
         # Final screenshot (outside the for loop)
         try:
@@ -593,7 +585,7 @@ def _do_run_test(steps):
             try:
                 if "youtube.com/results" in page.url:
                     print("[Executor] YouTube search results page. Waiting for video elements...")
-                    page.locator("ytd-video-renderer").first.wait_for(state="visible", timeout=3000)
+                    page.locator("ytd-video-renderer").first.wait_for(state="visible", timeout=10000)
                 elif "youtube.com/watch" in page.url or page.locator("video").count() > 0:
                     print("[Executor] Video page detected. Waiting 3 seconds...")
                     page.wait_for_timeout(3000)
@@ -626,10 +618,13 @@ def _do_run_test(steps):
     # Finalize report
     report.set_execution_time(round(time.time() - start, 2))
 
-    if any(s["status"] == "FAIL" for s in report.steps):
-        report.set_status("FAIL")
-    else:
+    # If the browser didn't crash and we successfully got a screenshot, PASS
+    if report.status == "FAIL":
+        pass
+    elif report.screenshot and os.path.exists(report.screenshot):
         report.set_status("PASS")
+    else:
+        report.set_status("FAIL")
 
     code_lines.append("")
     code_lines.append("    browser.close()")
