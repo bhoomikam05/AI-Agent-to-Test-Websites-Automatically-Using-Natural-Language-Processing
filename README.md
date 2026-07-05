@@ -1,60 +1,44 @@
 # 🤖 AI Agent to Test Websites Automatically Using Natural Language Processing
 
-An AI-powered web automation agent that converts natural language instructions into browser automation using Large Language Models (LLMs) and Playwright. Users can describe a task in plain English, and the system automatically generates and executes the required browser actions without writing any code.
+An AI-powered web automation application that converts natural language instructions into Playwright automation scripts. Simply enter commands like **"Open YouTube and search songs"**, and the agent intelligently generates Playwright code, executes the automation, captures screenshots, and displays a detailed execution report.
 
 ---
 
-## 📌 Project Overview
+# ✨ Features
 
-This project simplifies browser automation by allowing users to interact with websites using natural language commands. Instead of manually writing Playwright scripts, users simply enter instructions such as:
-
-> "Open YouTube and search for AI Tools"
-
-The system intelligently parses the instruction, generates Playwright automation code using AI, executes the automation, captures screenshots, and provides a detailed execution report.
-
----
-
-## 🚀 Features
-
-- 🧠 Natural Language Understanding using Groq LLM
-- ⚡ Automatic Playwright Script Generation
-- 🌐 Browser Automation
-- 📸 Automatic Screenshot Capture
-- 📊 Detailed Execution Report
-- 🔄 Rule-Based Parsing Fallback
-- ☁️ Cloud Deployment on Render
-- 🔐 Secure API Key Management using Environment Variables
-- 🐳 Dockerized Application
-- 📱 Responsive Web Interface
+- 🧠 Converts natural language into browser automation
+- 🎭 Automatically generates Playwright automation code
+- 🌐 Executes automation using Playwright and Chromium
+- 📸 Captures screenshots after execution
+- 📊 Displays parsed actions and execution status
+- 🎤 Supports both text and voice input
+- ⚡ Optimized browser reuse for faster execution
+- 🔐 Secure API key management using environment variables
+- ☁️ Deployable on Render using Docker
 
 ---
 
 # 🛠️ Tech Stack
 
-## Frontend
-
-- HTML5
-- CSS3
-- JavaScript
-
-## Backend
-
+### Backend
 - Python
 - Flask
 - Waitress
 
-## AI
+### Frontend
+- HTML
+- CSS
+- JavaScript
 
+### AI
 - Groq API
-- LLaMA Model
+- Llama Model
 
-## Browser Automation
-
+### Browser Automation
 - Microsoft Playwright
 - Chromium
 
-## Deployment
-
+### Deployment
 - Docker
 - Render
 
@@ -67,10 +51,10 @@ AI-Agent/
 │
 ├── agent.py
 ├── app.py
+├── api_config.py
 ├── executor.py
 ├── parser.py
 ├── report.py
-├── api_config.py
 ├── requirements.txt
 ├── Dockerfile
 ├── render.yaml
@@ -89,243 +73,220 @@ AI-Agent/
 
 ---
 
-# ⚙️ How It Works
+# ⚙️ Installation
 
-### Step 1
-
-User enters a natural language instruction.
-
-Example:
-
-```
-Open YouTube and search AI Agents
-```
-
-↓
-
-### Step 2
-
-The instruction is parsed using:
-
-- Groq LLM
-- Rule-Based Parser (Fallback)
-
-↓
-
-### Step 3
-
-Structured browser actions are generated.
-
-↓
-
-### Step 4
-
-Playwright automation code is generated automatically.
-
-↓
-
-### Step 5
-
-Chromium browser executes the automation.
-
-↓
-
-### Step 6
-
-Screenshot is captured.
-
-↓
-
-### Step 7
-
-Execution Report is displayed.
-
----
-
-# 📷 Example Workflow
-
-**Input**
-
-```
-Open YouTube and search AI Tools
-```
-
-↓
-
-**Generated Actions**
-
-```
-Open Website
-Type Search Query
-Press Enter
-Wait for Results
-Capture Screenshot
-```
-
-↓
-
-**Generated Playwright Code**
-
-```python
-page.goto("https://youtube.com")
-page.fill("input", "AI Tools")
-page.keyboard.press("Enter")
-page.screenshot(path="result.png")
-```
-
-↓
-
-**Output**
-
-- Screenshot
-- Execution Report
-- Generated Code
-- Automation Status
-
----
-
-# 📸 Screenshots
-
-Add screenshots of:
-
-- Home Page
-- Generated Actions
-- Generated Playwright Code
-- Execution Report
-- Screenshot Output
-
-Example:
-
-```
-screenshots/
-├── home.png
-├── automation.png
-├── result.png
-```
-
----
-
-# 🔐 Environment Variables
-
-Create a `.env` file.
-
-```
-GROQ_API_KEY=your_groq_api_key
-HEADLESS=false
-```
-
----
-
-# ▶️ Running Locally
-
-Clone repository
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/bhoomikam05/AI-Agent-to-Test-Websites-Automatically-Using-Natural-Language-Processing.git
-```
 
-Move inside project
-
-```bash
 cd AI-Agent-to-Test-Websites-Automatically-Using-Natural-Language-Processing
 ```
 
-Create virtual environment
+---
+
+## 2. Create a Virtual Environment
+
+### Windows
 
 ```bash
 python -m venv venv
 ```
 
-Activate environment
-
-Windows
+Activate
 
 ```bash
 venv\Scripts\activate
 ```
 
-Install dependencies
+### Mac/Linux
+
+```bash
+python3 -m venv venv
+
+source venv/bin/activate
+```
+
+---
+
+## 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run application
+---
+
+## 4. Install Playwright Browser
+
+```bash
+playwright install chromium
+```
+
+---
+
+# 🔑 Environment Variables
+
+Create a file named `.env`
+
+```env
+GROQ_API_KEY=your_groq_api_key
+
+CHROME_PROFILE_PATH=
+```
+
+You can generate your Groq API Key from:
+
+https://console.groq.com/
+
+---
+
+# ▶️ Run the Application
 
 ```bash
 python app.py
 ```
 
-Open
+---
+
+# 🌍 Open in Browser
+
+Once the server starts, open:
+
+```
+http://127.0.0.1:5000
+```
+
+or
 
 ```
 http://localhost:5000
 ```
 
----
+**Default Port:** `5000`
 
-# 🐳 Docker Deployment
-
-Build Docker image
-
-```bash
-docker build -t ai-agent .
-```
-
-Run container
-
-```bash
-docker run -p 5000:5000 ai-agent
-```
+> 💡 **Recommended:** For the best performance and full browser visualization, run the application locally. The browser window will be visible, and automation typically completes much faster than on free cloud deployments.
 
 ---
 
-# ☁️ Render Deployment
+# 🧪 Sample Commands
+
+### Google
+
+```text
+Open Google
+```
+
+```text
+Open Google and search Artificial Intelligence
+```
+
+```text
+Open Google and search Python Programming
+```
+
+```text
+Open Google and search Machine Learning
+```
+
+---
+
+### YouTube
+
+```text
+Open YouTube
+```
+
+```text
+Open YouTube and search songs
+```
+
+```text
+Open YouTube and search AI tutorials
+```
+
+```text
+Open YouTube and search Python Flask
+```
+
+```text
+Open YouTube and play the first video
+```
+
+---
+
+# 💡 User Tips
+
+- Use clear and simple natural language instructions.
+- Wait for the current automation to complete before starting another one.
+- Ensure you have a stable internet connection.
+- For the best experience, use supported websites like Google and YouTube.
+- If running locally, keep the browser window open while the automation is executing.
+
+---
+
+# 📸 Output
+
+For every automation, the application displays:
+
+- User Instruction
+- Parsed Actions
+- Generated Playwright Code
+- Execution Status (PASS/FAIL)
+- Captured Screenshot
+- Detailed Execution Report
+
+---
+
+# 🚀 Deployment
 
 The application is deployed using:
 
 - Docker
 - Render Web Service
 - Environment Variables
-- Waitress Server
+- Waitress Production Server
+
+Deployment Steps:
+
+1. Push the project to GitHub.
+2. Connect the repository to Render.
+3. Deploy using Docker.
+4. Configure environment variables.
+5. Access the deployed application.
 
 ---
 
-# 🧪 Sample Commands
+# 📝 Notes
 
-```
-Open YouTube and search AI Tools
-
-Open GitHub
-
-Search Python on Wikipedia
-
-Open Amazon and search headphones
-
-Open Netflix
-
-Open Stack Overflow
-```
+- **Local execution is recommended** for the best experience. It provides faster browser automation, lower latency, and a visible browser window, making it ideal for development and demonstrations.
+- The deployed version on **Render Free** runs Playwright in **headless mode** and may experience slightly slower execution because of shared CPU and memory resources.
+- Some websites, particularly **Google Search**, may occasionally display CAPTCHA challenges when accessed from shared cloud server IP addresses. Running the project locally typically avoids these restrictions.
+- The application is fully functional in both local and deployed environments, but local execution offers the best performance and user experience.
 
 ---
 
-# 🔒 Security
+# 📷 Screenshots
 
-- API Keys stored securely using `.env`
-- `.env` excluded using `.gitignore`
-- `.env.example` provided for setup
-- Sensitive credentials never committed
+Include screenshots of:
+
+- 🏠 Home Page
+- 📋 Parsed Actions
+- 🎭 Generated Playwright Code
+- ✅ PASS Status
+- 📸 Screenshot Output
+- 📊 Execution Report
 
 ---
 
-# 📈 Future Enhancements
+# 🔮 Future Enhancements
 
 - 🎥 Live Browser Streaming
-- 🗣️ Voice Commands
-- 📹 Automation Video Recording
 - 🤖 Multi-Agent Workflow
+- 🗣️ Voice Commands
+- 📹 Automation Recording
+- 🌍 Cross-Browser Support
 - 📄 PDF Report Generation
-- 🌍 Multi-Browser Support
 - 📊 Automation Analytics Dashboard
 - 🔄 Parallel Task Execution
 
@@ -337,17 +298,19 @@ Open Stack Overflow
 
 Computer Science Engineering Student
 
-Community Manager @ OSCode
-
-AI & Automation Enthusiast
-
 GitHub:
 https://github.com/bhoomikam05
 
-LinkedIn:
-(Add your LinkedIn URL)
+## 🌐 Live Demo
+
+https://ai-agent-to-test-websites-automatically.onrender.com
+
+## 🔗 GitHub Repository
+
+https://github.com/bhoomikam05/AI-Agent-to-Test-Websites-Automatically-Using-Natural-Language-Processing
 
 ---
 
-# ⭐ If you found this project useful, don't forget to star the repository!
-Bhoomika M
+# ⭐ Support
+
+If you found this project useful, consider giving it a ⭐ on GitHub!
