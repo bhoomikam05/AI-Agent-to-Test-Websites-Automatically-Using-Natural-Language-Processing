@@ -114,17 +114,140 @@ for ($i = 0; $i -lt 10; $i++) {{
 
 
 
+def _ensure_browser():
+    """Ensure the browser is running, starting it if necessary."""
+    global _playwright, _active_browser
+    if not _playwright:
+        _playwright = sync_playwright().start()
+
+    if not _active_browser or not _active_browser.is_connected():
+        print(f"[Executor] Launching Playwright Chromium (headless={HEADLESS_MODE})...")
+        browser_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--window-position=0,0",
+            "--window-size=1440,900",
+            "--disable-extensions",
+            "--disable-background-networking",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-breakpad",
+            "--disable-client-side-phishing-detection",
+            "--disable-default-apps",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-hang-monitor",
+            "--disable-ipc-flooding-protection",
+            "--disable-notifications",
+            "--disable-popup-blocking",
+            "--disable-prompt-on-repost",
+            "--disable-renderer-backgrounding",
+            "--disable-sync",
+            "--mute-audio",
+            "--no-sandbox",
+            "--no-pings",
+        ]
+        if IS_DEPLOYED:
+            browser_args.extend([
+                "--disable-setuid-sandbox",
+            ])
+
+        _active_browser = _playwright.chromium.launch(
+            headless=HEADLESS_MODE,
+            slow_mo=0,
+            args=browser_args,
+        )
+    return _active_browser
+
+
+def _ensure_context_and_page():
+    """Ensure the browser, context, and page are initialized and ready for a clean run."""
+    global _active_browser, _active_context, _active_page
+    
+    # 1. Ensure browser is alive
+    browser = _ensure_browser()
+    
+    # 2. Ensure context exists and is valid
+    if not _active_context:
+        print("[Executor] Creating new browser context...")
+        _active_context = browser.new_context(
+            viewport={"width": 1440, "height": 900},
+            locale="en-US",
+            timezone_id="America/New_York",
+            ignore_https_errors=True,
+            no_viewport=True,
+        )
+    else:
+        # Reuse context safely: clear cookies and permissions
+        try:
+            _active_context.clear_cookies()
+            try:
+                _active_context.clear_permissions()
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"[Executor] Failed to clear context state, recreating context: {e}")
+            try:
+                _active_context.close()
+            except Exception:
+                pass
+            _active_context = browser.new_context(
+                viewport={"width": 1440, "height": 900},
+                locale="en-US",
+                timezone_id="America/New_York",
+                ignore_https_errors=True,
+                no_viewport=True,
+            )
+            _active_page = None
+
+    # 3. Ensure page exists and is valid
+    if not _active_page:
+        _active_page = _active_context.new_page()
+        _apply_stealth(_active_page)
+    else:
+        # Reuse page safely: close any extra pages/tabs and reset page to about:blank
+        try:
+            pages = _active_context.pages
+            if len(pages) > 1:
+                print(f"[Executor] Closing {len(pages) - 1} extra tabs...")
+                for p in pages[1:]:
+                    try:
+                        p.close()
+                    except Exception:
+                        pass
+            _active_page = pages[0]
+            _active_page.goto("about:blank")
+        except Exception as e:
+            print(f"[Executor] Failed to reuse page, recreating page: {e}")
+            try:
+                _active_page.close()
+            except Exception:
+                pass
+            _active_page = _active_context.new_page()
+            _apply_stealth(_active_page)
+            
+    # Configure timeouts
+    _active_page.set_default_timeout(10000)
+    try:
+        _active_page.bring_to_front()
+    except Exception:
+        pass
+    bring_window_to_front()
+    return _active_browser, _active_context, _active_page
+
+
 def _worker_loop():
     """Permanent background thread that executes all Playwright operations in the same thread."""
     global _playwright, _active_browser, _active_context, _active_page
 
-    # Only initialize Playwright — do NOT open a browser window yet.
-    # The browser will be launched on-demand when the user submits automation.
+    # Pre-launch browser so it is ready immediately on application startup
     try:
-        _playwright = sync_playwright().start()
-        print("[Executor] Playwright initialized. Browser will open when automation runs.")
+        with _browser_lock:
+            _ensure_browser()
+        print("[Executor] Playwright initialized and browser pre-launched successfully.")
     except Exception as e:
-        print(f"[Executor] Playwright init failed: {e}")
+        print(f"[Executor] Playwright/browser pre-launch failed: {e}")
 
     # Main loop processing jobs
     while True:
@@ -227,7 +350,7 @@ def _do_run_test(steps):
 
     # Ensure static/screenshots directory exists
     os.makedirs("static/screenshots", exist_ok=True)
-    screenshot_path = f"static/screenshots/screenshot_{int(time.time())}.png"
+    screenshot_path = f"static/screenshots/screenshot_{int(time.time())}.jpg"
     report.set_screenshot(screenshot_path)
 
     code_lines = [
@@ -241,66 +364,8 @@ def _do_run_test(steps):
 
     try:
         with _browser_lock:
-            if not _playwright:
-                _playwright = sync_playwright().start()
-
-            if _active_page:
-                try:
-                    _active_page.close()
-                except Exception:
-                    pass
-                _active_page = None
-
-            if _active_context:
-                try:
-                    _active_context.close()
-                except Exception:
-                    pass
-                _active_context = None
-
-            # Launch browser if not running or closed
-            if not _active_browser or not _active_browser.is_connected():
-                print(f"[Executor] Launching new Playwright Chromium (headless={HEADLESS_MODE})...")
-                browser_args = [
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-first-run",
-                    "--no-default-browser-check",
-                    "--window-position=0,0",
-                    "--window-size=1440,900",
-                ]
-
-                if IS_DEPLOYED:
-                    browser_args.extend([
-                        "--disable-gpu",
-                        "--disable-dev-shm-usage",
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                    ])
-
-                _active_browser = _playwright.chromium.launch(
-                    headless=HEADLESS_MODE,
-                    slow_mo=0,
-                    args=browser_args,
-                )
-
-            browser = _active_browser
-            context = browser.new_context(
-                viewport={"width": 1440, "height": 900},
-                locale="en-US",
-                timezone_id="America/New_York",
-                ignore_https_errors=True,
-                no_viewport=True,
-            )
-            _active_context = context
-
-            page = context.new_page()
-            _active_page = page
-            
-            _apply_stealth(page)
-            page.set_default_timeout(10000)
-            page.bring_to_front()
-            bring_window_to_front()
-            print("[Executor] Browser is ready instantly!")
+            browser, context, page = _ensure_context_and_page()
+            print("[Executor] Browser, context, and page are ready instantly!")
 
         # Execute all steps
         for i, step in enumerate(steps):
@@ -313,7 +378,6 @@ def _do_run_test(steps):
                     try:
                         page.goto(url, wait_until="domcontentloaded", timeout=30000)
                         bring_window_to_front()
-                        page.wait_for_timeout(10)
                         _dismiss_common_dialogs(page)
                         code_lines.append(f'    page.goto("{url}")')
                         report.add_step(f"Open: {url.split('/')[2]}", "PASS")
@@ -328,9 +392,9 @@ def _do_run_test(steps):
                     selector = step.get("selector", "body")
                     try:
                         if selector == "body":
-                            page.wait_for_load_state("load", timeout=5000)
+                            page.wait_for_load_state("domcontentloaded", timeout=3000)
                         else:
-                            page.locator(selector).first.wait_for(state="visible", timeout=5000)
+                            page.locator(selector).first.wait_for(state="visible", timeout=3000)
                         report.add_step("Wait: Ready", "PASS")
                     except Exception:
                         report.add_step("Wait: OK", "PASS")
@@ -343,8 +407,8 @@ def _do_run_test(steps):
                         field = _find_input_field(page, selector)
                         if field is None:
                             raise Exception("Element not found")
-                        field.wait_for(state="visible", timeout=5000)
-                        field.fill(value, timeout=3000)
+                        field.wait_for(state="visible", timeout=2000)
+                        field.fill(value, timeout=2000)
                         if selector:
                             code_lines.append(f'    page.locator("{selector}").first.fill("{value}")')
                         else:
@@ -369,7 +433,7 @@ def _do_run_test(steps):
                         code_lines.append(f'    page.keyboard.press("{key}")')
                         report.add_step(f"Press: {key}", "PASS")
                         if key == "Enter":
-                            page.wait_for_timeout(100)
+                            page.wait_for_timeout(50)
                     except Exception:
                         report.add_step(f"Press: {key} (FAILED)", "FAIL")
                         report.set_status("FAIL")
@@ -383,28 +447,27 @@ def _do_run_test(steps):
 
                     try:
                         locator = page.locator(selector).nth(index)
-                        locator.wait_for(state="visible", timeout=5000)
-                        locator.click(timeout=3000)
-                        page.wait_for_timeout(10)
+                        locator.wait_for(state="visible", timeout=2000)
+                        locator.click(timeout=1500)
                         code_lines.append(f'    page.locator("{selector}").nth({index}).click()')
                         report.add_step(f"Click: {description}", "PASS")
                     except Exception:
                         # Fallback 1: Try clicking by visible text
                         try:
                             locator = page.get_by_text(selector, exact=False).nth(index)
-                            locator.click(timeout=2000)
+                            locator.click(timeout=1000)
                             code_lines.append(f'    page.get_by_text("{selector}", exact=False).nth({index}).click()')
                             report.add_step(f"Click: {description} (text fallback)", "PASS")
                         except Exception:
                             # Fallback 2: button or link role
                             try:
                                 locator = page.get_by_role("button", name=selector, exact=False).nth(index)
-                                locator.click(timeout=2000)
+                                locator.click(timeout=1000)
                                 report.add_step(f"Click: {description} (button fallback)", "PASS")
                             except Exception:
                                 try:
                                     locator = page.get_by_role("link", name=selector, exact=False).nth(index)
-                                    locator.click(timeout=2000)
+                                    locator.click(timeout=1000)
                                     report.add_step(f"Click: {description} (link fallback)", "PASS")
                                 except Exception:
                                     # Fallback 3: Site-specific result selectors
@@ -426,7 +489,7 @@ def _do_run_test(steps):
                                         for alt in alternative_selectors:
                                             try:
                                                 locator = page.locator(alt).nth(index)
-                                                locator.click(timeout=2000)
+                                                locator.click(timeout=800)
                                                 code_lines.append(f'    page.locator("{alt}").nth({index}).click()')
                                                 found = True
                                                 report.add_step(f"Click: {description} (result fallback)", "PASS")
@@ -486,8 +549,7 @@ def _do_run_test(steps):
 
                 # ── SCREENSHOT ────────────────────────────────────
                 elif action == "screenshot":
-                    page.wait_for_timeout(50)
-                    page.screenshot(path=screenshot_path)
+                    page.screenshot(path=screenshot_path, type="jpeg", quality=80)
                     code_lines.append(f'    page.screenshot(path="{screenshot_path}")')
                     report.add_step("Screenshot: Captured", "PASS")
 
@@ -495,7 +557,7 @@ def _do_run_test(steps):
                 report.add_step(f"Step {i+1} timeout", "FAIL")
                 report.set_status("FAIL")
                 try:
-                    page.screenshot(path=screenshot_path)
+                    page.screenshot(path=screenshot_path, type="jpeg", quality=80)
                 except Exception:
                     pass
                 break
@@ -504,7 +566,7 @@ def _do_run_test(steps):
                 report.add_step(f"Step {i+1} error: {str(e)[:50]}", "FAIL")
                 report.set_status("FAIL")
                 try:
-                    page.screenshot(path=screenshot_path)
+                    page.screenshot(path=screenshot_path, type="jpeg", quality=80)
                 except Exception:
                     pass
                 break
@@ -522,8 +584,8 @@ def _do_run_test(steps):
 
             # Wait for load states if navigation is happening
             try:
-                page.wait_for_load_state("load", timeout=3000)
-                page.wait_for_load_state("networkidle", timeout=3000)
+                page.wait_for_load_state("domcontentloaded", timeout=3000)
+                page.wait_for_load_state("networkidle", timeout=1000)
             except Exception:
                 pass
 
@@ -531,57 +593,56 @@ def _do_run_test(steps):
             try:
                 if "youtube.com/results" in page.url:
                     print("[Executor] YouTube search results page. Waiting for video elements...")
-                    page.locator("ytd-video-renderer").first.wait_for(state="visible", timeout=4000)
+                    page.locator("ytd-video-renderer").first.wait_for(state="visible", timeout=3000)
                 elif "youtube.com/watch" in page.url or page.locator("video").count() > 0:
                     print("[Executor] Video page detected. Checking playback status...")
                     try:
-                        page.locator("video").first.wait_for(state="visible", timeout=5000)
+                        video_element = page.locator("video").first
+                        video_element.wait_for(state="visible", timeout=3000)
                         # Check if video is paused via JS
                         is_paused = page.evaluate("() => { const v = document.querySelector('video'); return v ? v.paused : true; }")
                         if is_paused:
                             print("[Executor] Video is paused. Clicking play button...")
                             play_btn = page.locator(".ytp-play-button").first
-                            if play_btn.count() > 0:
-                                play_btn.click(timeout=2000)
+                            if play_btn.count() > 0 and play_btn.is_visible():
+                                play_btn.click(timeout=1500)
                                 print("[Executor] Clicked YouTube play button.")
                             else:
-                                page.locator("video").first.click(timeout=2000)
+                                video_element.click(timeout=1500)
                                 print("[Executor] Clicked video element fallback.")
                         else:
                             print("[Executor] Video is already playing. Skipping click.")
                     except Exception as e:
                         print(f"[Executor] Failed to check/play video: {e}")
                     
-                    # Wait for video to buffer and render actual frames (6 seconds)
-                    print("[Executor] Waiting 6 seconds for video frames to render...")
-                    page.wait_for_timeout(6000)
+                    # Intelligent wait for video to buffer and start rendering frames (max 3s)
+                    print("[Executor] Waiting for video playback to start...")
+                    try:
+                        page.wait_for_function(
+                            "() => { const v = document.querySelector('video'); return v && v.currentTime > 0.1; }",
+                            timeout=3000
+                        )
+                        print("[Executor] Video started playing, finished waiting.")
+                    except Exception as e:
+                        print(f"[Executor] Video playback wait timed out/failed: {e}")
                 elif "wikipedia.org" in page.url:
                     print("[Executor] Wikipedia page. Waiting for main content...")
                     page.locator("#content, #bodyContent, #mw-content-text").first.wait_for(state="visible", timeout=3000)
             except Exception as e:
                 print(f"[Executor] Site-specific wait timed out or failed: {e}")
 
-            # Wait 1.5 seconds for dynamic JS rendering/content to settle
-            page.wait_for_timeout(1500)
-            page.screenshot(path=screenshot_path)
+            # Wait 200ms for dynamic JS rendering/content to settle
+            page.wait_for_timeout(200)
+            page.screenshot(path=screenshot_path, type="jpeg", quality=80)
         except Exception:
             pass
 
-        # Keep browser open for user to see results
-        if not HEADLESS_MODE:
-            print("\n[Automation] Completed! Browser will remain open.")
-            print("[Automation] It will close when you run a new automation or stop the server.\n")
-            with _browser_lock:
-                _active_browser = browser
-                _active_context = context
-                _active_page = page
-        else:
-            print("\n[Automation] Completed! Closing browser...\n")
-            try:
-                context.close()
-                browser.close()
-            except Exception:
-                pass
+        # Keep browser context and page active for reuse
+        print("\n[Automation] Completed! Browser session kept active for reuse.")
+        with _browser_lock:
+            _active_browser = browser
+            _active_context = context
+            _active_page = page
 
     except Exception as e:
         report.add_step(f"Browser error: {str(e)[:100]}", "FAIL")
