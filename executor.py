@@ -595,36 +595,8 @@ def _do_run_test(steps):
                     print("[Executor] YouTube search results page. Waiting for video elements...")
                     page.locator("ytd-video-renderer").first.wait_for(state="visible", timeout=3000)
                 elif "youtube.com/watch" in page.url or page.locator("video").count() > 0:
-                    print("[Executor] Video page detected. Checking playback status...")
-                    try:
-                        video_element = page.locator("video").first
-                        video_element.wait_for(state="visible", timeout=3000)
-                        # Check if video is paused via JS
-                        is_paused = page.evaluate("() => { const v = document.querySelector('video'); return v ? v.paused : true; }")
-                        if is_paused:
-                            print("[Executor] Video is paused. Clicking play button...")
-                            play_btn = page.locator(".ytp-play-button").first
-                            if play_btn.count() > 0 and play_btn.is_visible():
-                                play_btn.click(timeout=1500)
-                                print("[Executor] Clicked YouTube play button.")
-                            else:
-                                video_element.click(timeout=1500)
-                                print("[Executor] Clicked video element fallback.")
-                        else:
-                            print("[Executor] Video is already playing. Skipping click.")
-                    except Exception as e:
-                        print(f"[Executor] Failed to check/play video: {e}")
-                    
-                    # Intelligent wait for video to buffer and start rendering frames (max 3s)
-                    print("[Executor] Waiting for video playback to start...")
-                    try:
-                        page.wait_for_function(
-                            "() => { const v = document.querySelector('video'); return v && v.currentTime > 0.1; }",
-                            timeout=3000
-                        )
-                        print("[Executor] Video started playing, finished waiting.")
-                    except Exception as e:
-                        print(f"[Executor] Video playback wait timed out/failed: {e}")
+                    print("[Executor] Video page detected. Waiting 3 seconds...")
+                    page.wait_for_timeout(3000)
                 elif "wikipedia.org" in page.url:
                     print("[Executor] Wikipedia page. Waiting for main content...")
                     page.locator("#content, #bodyContent, #mw-content-text").first.wait_for(state="visible", timeout=3000)
